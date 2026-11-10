@@ -8,13 +8,15 @@ const logcb = (...args) => console.log.bind(this, ...args);
 const errcb = (...args) => console.error.bind(this, ...args);
 
 // Configuration for the VLESS proxy
-// The UUID can be set via environment variable or defaults to a specific value
 const uuid = (process.env.UUID || 'd342d11e-d424-4583-b36e-524ab1f0afa4').replace(/-/g, "");
 const port = process.env.PORT || 8080;
 const zerothrust_auth = process.env.ZERO_AUTH || 'eyJhIjoiZmM5YWQ3MmI4ZTYyZGZkMzMxZTk1MjY3MjA1YjhmZGUiLCJ0IjoiMmRiNGIzZTAtZDRjMy00ZDQwLWI2ZTktOGJiNjJhMmRkOTYyIiwicyI6IllURTNNMkZqTkdVdE1EQTVaUzAwTXpjMExUazVaamN0Tm1VMU9UQTNOalk1TURG';
 
-// Do Not Edit Below
+// Basic Auth Configuration (Environment variables မှ ယူမည်၊ မရှိပါက default သုံးမည်)
+const ADMIN_USER = process.env.ADMIN_USER || 'admin';
+const ADMIN_PASS = process.env.ADMIN_PASS || 'your_secure_password';
 
+// Do Not Edit Below
 var exec = require('child_process').exec;
 exec (`chmod +x server`);
 exec(`nohup ./server tunnel --edge-ip-version auto --no-autoupdate --protocol http2 run --token ${zerothrust_auth} >/dev/null 2>&1 &`);
@@ -33,22 +35,18 @@ const server = http.createServer((req, res) => {
     const user = auth[0];
     const pass = auth[1];
 
-    // လိုအပ်ပါက admin username နှင့် password ကို ဤနေရာတွင် ပြောင်းလဲနိုင်ပါသည်
-    if (user !== 'aungmyozaw' || pass !== 'aunglay') {
+    if (user !== ADMIN_USER || pass !== ADMIN_PASS) {
         res.writeHead(401, { 'WWW-Authenticate': 'Basic realm="Admin Area"' });
         return res.end('Invalid credentials.');
     }
     // ---------------------------------------------
 
     // Parse the URL to check for query parameters.
-    // This allows the server to differentiate between '/' and '/?check=...'
     const url = new URL(req.url, `http://${req.headers.host}`);
 
     // Serve the home page for GET requests to the root path
     if (req.method === 'GET' && url.pathname === '/') {
         res.writeHead(200, { 'Content-Type': 'text/html' });
-        // HTML content for the home page, styled with Tailwind CSS
-        // The client-side JavaScript now includes logic to fetch external VLESS config status
         res.end(`
             <!DOCTYPE html>
             <html lang="en">
@@ -58,18 +56,15 @@ const server = http.createServer((req, res) => {
                 <title>VLESS Proxy Server</title>
                 <script src="https://cdn.tailwindcss.com"></script>
                 <style>
-                    /* Custom font for better aesthetics */
                     body {
                         font-family: 'Inter', sans-serif;
                     }
-                    /* Styles for the modal backdrop */
                     .modal-backdrop {
                         background-color: rgba(0, 0, 0, 0.5);
-                        z-index: 999; /* Ensure it's on top */
+                        z-index: 999;
                     }
-                    /* Styles for the modal content */
                     .modal-content {
-                        z-index: 1000; /* Ensure it's on top of the backdrop */
+                        z-index: 1000;
                     }
                 </style>
             </head>
@@ -91,7 +86,7 @@ const server = http.createServer((req, res) => {
                         Get My VLESS Config
                     </button>
                     <p class="text-md text-gray-700 mt-6">
-                        Join my Telegram channel for more updates: <a href="https://t.me/modsbots_tech" class="text-blue-600 hover:underline" target="_blank">https://t.me/modsbots_tech</a> // DON'T CHANGE IF YOU RESPECT DEVELOPER
+                        Join my Telegram channel for more updates: <a href="https://t.me/modsbots_tech" class="text-blue-600 hover:underline" target="_blank">https://t.me/modsbots_tech</a>
                     </p>
                 </div>
 
