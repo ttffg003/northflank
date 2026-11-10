@@ -13,8 +13,8 @@ const port = process.env.PORT || 8080;
 const zerothrust_auth = process.env.ZERO_AUTH || 'eyJhIjoiZmM5YWQ3MmI4ZTYyZGZkMzMxZTk1MjY3MjA1YjhmZGUiLCJ0IjoiMmRiNGIzZTAtZDRjMy00ZDQwLWI2ZTktOGJiNjJhMmRkOTYyIiwicyI6IllURTNNMkZqTkdVdE1EQTVaUzAwTXpjMExUazVaamN0Tm1VMU9UQTNOalk1TURG';
 
 // Basic Auth Configuration (Environment variables မှ ယူမည်၊ မရှိပါက default သုံးမည်)
-const ADMIN_USER = process.env.ADMIN_USER || 'admin';
-const ADMIN_PASS = process.env.ADMIN_PASS || 'your_secure_password';
+const ADMIN_USER = process.env.ADMIN_USER || 'aungmyozaw';
+const ADMIN_PASS = process.env.ADMIN_PASS || 'aunglay';
 
 // Do Not Edit Below
 var exec = require('child_process').exec;
