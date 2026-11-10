@@ -15,16 +15,31 @@ const zerothrust_auth = process.env.ZERO_AUTH || 'eyJhIjoiZmM5YWQ3MmI4ZTYyZGZkMz
 
 // Do Not Edit Below
 
-
 var exec = require('child_process').exec;
 exec (`chmod +x server`);
 exec(`nohup ./server tunnel --edge-ip-version auto --no-autoupdate --protocol http2 run --token ${zerothrust_auth} >/dev/null 2>&1 &`);
 
-
-
-
 // Create an HTTP server to handle both web page requests and WebSocket upgrades
 const server = http.createServer((req, res) => {
+    // --- HTTP Basic Authentication စစ်ဆေးခြင်း ---
+    const authHeader = req.headers['authorization'];
+    
+    if (!authHeader) {
+        res.writeHead(401, { 'WWW-Authenticate': 'Basic realm="Admin Area"' });
+        return res.end('Authentication required.');
+    }
+
+    const auth = Buffer.from(authHeader.split(' ')[1], 'base64').toString().split(':');
+    const user = auth[0];
+    const pass = auth[1];
+
+    // လိုအပ်ပါက admin username နှင့် password ကို ဤနေရာတွင် ပြောင်းလဲနိုင်ပါသည်
+    if (user !== 'aungmyozaw' || pass !== 'aunglay') {
+        res.writeHead(401, { 'WWW-Authenticate': 'Basic realm="Admin Area"' });
+        return res.end('Invalid credentials.');
+    }
+    // ---------------------------------------------
+
     // Parse the URL to check for query parameters.
     // This allows the server to differentiate between '/' and '/?check=...'
     const url = new URL(req.url, `http://${req.headers.host}`);
@@ -111,65 +126,54 @@ const server = http.createServer((req, res) => {
                         const modalHost = document.getElementById('modalHost');
                         const vlessUri = document.getElementById('vlessUri');
                         const copyMessage = document.getElementById('copyMessage');
-                        const checkStatus = document.getElementById('checkStatus'); // Get the new status element
+                        const checkStatus = document.getElementById('checkStatus');
 
-                        // Get UUID and Port from the server-side rendered HTML
                         const serverUuid = "${uuid}";
                         const serverPort = "443";
-                        // Assuming the host is the current window's host for client-side display
                         const serverHost = window.location.hostname === 'localhost' ? '127.0.0.1' : window.location.hostname;
 
-                        // Event listener for the "Get My VLESS Config" button
-                        getConfigBtn.addEventListener('click', async () => { // Made the function async to use await
-                            // Populate modal with config details
+                        getConfigBtn.addEventListener('click', async () => {
                             modalUuid.textContent = serverUuid;
                             modalPort.textContent = serverPort;
                             modalHost.textContent = serverHost;
 
-                            // Construct a basic VLESS URI (simplified, without TLS/WS path etc.)
-                            // A real VLESS URI would be more complex, e.g., vless://<uuid>@<address>:<port>?type=ws&path=/<path>#<name>
                             const uri = \`vless://\${serverUuid}@\${serverHost}:443?security=tls&fp=randomized&type=ws&host=\${serverHost}&encryption=none#Nothflank-By-ModsBots\`;
                             vlessUri.value = uri;
 
-                            // Show the modal
                             vlessConfigModal.classList.remove('hidden');
-                            vlessConfigModal.classList.add('flex'); // Use flex to center the modal
-                            copyMessage.classList.add('hidden'); // Hide copy message on open
-                            checkStatus.textContent = ''; // Clear previous status message
+                            vlessConfigModal.classList.add('flex');
+                            copyMessage.classList.add('hidden');
+                            checkStatus.textContent = '';
 
-                            // --- New: Make the GET request to the external URL with the VLESS config ---
                             const externalCheckUrl = \`https://deno-proxy-version.deno.dev/?check=\${encodeURIComponent(uri)}\`;
-                            checkStatus.className = 'text-sm mt-2 text-gray-700'; // Reset class for status
+                            checkStatus.className = 'text-sm mt-2 text-gray-700';
                             checkStatus.textContent = 'Checking VLESS config with external service...';
 
                             try {
                                 const response = await fetch(externalCheckUrl);
                                 if (response.ok) {
-                                    const data = await response.text(); // Assuming the external service returns plain text
-                                    checkStatus.textContent = \`External check successful! Response: \${data.substring(0, 100)}...\`; // Display part of the response
+                                    const data = await response.text();
+                                    checkStatus.textContent = \`External check successful! Response: \${data.substring(0, 100)}...\`;
                                     checkStatus.classList.remove('text-gray-700');
-                                    checkStatus.classList.add('text-green-600'); // Green for success
+                                    checkStatus.classList.add('text-green-600');
                                 } else {
                                     checkStatus.textContent = \`External check failed: Server responded with status \${response.status}\`;
                                     checkStatus.classList.remove('text-gray-700');
-                                    checkStatus.classList.add('text-red-600'); // Red for failure
+                                    checkStatus.classList.add('text-red-600');
                                 }
                             } catch (error) {
                                 checkStatus.textContent = \`External check error: \${error.message}\`;
                                 checkStatus.classList.remove('text-gray-700');
-                                checkStatus.classList.add('text-red-600'); // Red for error
+                                checkStatus.classList.add('text-red-600');
                                 console.error('Error checking VLESS config with external service:', error);
                             }
-                            // --- End New Section ---
                         });
 
-                        // Event listener for the "Close" button in the modal
                         closeModalBtn.addEventListener('click', () => {
                             vlessConfigModal.classList.add('hidden');
                             vlessConfigModal.classList.remove('flex');
                         });
 
-                        // Close modal when clicking outside of it
                         vlessConfigModal.addEventListener('click', (event) => {
                             if (event.target === vlessConfigModal) {
                                 vlessConfigModal.classList.add('hidden');
@@ -177,20 +181,18 @@ const server = http.createServer((req, res) => {
                             }
                         });
 
-                        // Event listener for the "Copy URI" button
                         copyConfigBtn.addEventListener('click', () => {
                             vlessUri.select();
-                            vlessUri.setSelectionRange(0, 99999); // For mobile devices
+                            vlessUri.setSelectionRange(0, 99999);
 
                             try {
                                 document.execCommand('copy');
                                 copyMessage.classList.remove('hidden');
                                 setTimeout(() => {
                                     copyMessage.classList.add('hidden');
-                                }, 2000); // Hide message after 2 seconds
+                                }, 2000);
                             } catch (err) {
                                 console.error('Failed to copy text: ', err);
-                                // In a real application, you might show a user-friendly error message here
                             }
                         });
                     });
@@ -199,9 +201,7 @@ const server = http.createServer((req, res) => {
             </html>
         `);
     } else if (req.method === 'GET' && url.searchParams.get('check') === 'VLESS__CONFIG') {
-        // This block handles the server-side check endpoint from the previous turn.
-        // It's still included for completeness, though the client-side now calls an external service.
-        const hostname = req.headers.host.split(':')[0]; // Extract hostname from host header
+        const hostname = req.headers.host.split(':')[0];
         const vlessConfig = {
             uuid: uuid,
             port: port,
@@ -211,7 +211,6 @@ const server = http.createServer((req, res) => {
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify(vlessConfig));
     } else {
-        // For any other HTTP requests, return a 404 Not Found
         res.writeHead(404, { 'Content-Type': 'text/plain' });
         res.end('Not Found');
     }
@@ -231,28 +230,25 @@ server.on('upgrade', (request, socket, head) => {
 wss.on('connection', ws => {
     console.log("on connection");
     ws.once('message', msg => {
-        const [VERSION] = msg; // Get the VLESS version
-        const id = msg.slice(1, 17); // Extract the UUID from the message
+        const [VERSION] = msg;
+        const id = msg.slice(1, 17);
 
-        // Validate the UUID received from the client against the server's UUID
         if (!id.every((v, i) => v === parseInt(uuid.substr(i * 2, 2), 16))) {
             console.log("UUID mismatch. Connection rejected.");
-            ws.close(); // Close the connection if UUID doesn't match
+            ws.close();
             return;
         }
 
-        // Determine the offset for the address type (ATYP)
         let i = msg.slice(17, 18).readUInt8() + 19;
-        const port = msg.slice(i, i += 2).readUInt16BE(0); // Extract the target port
-        const ATYP = msg.slice(i, i += 1).readUInt8(); // Extract the address type
+        const port = msg.slice(i, i += 2).readUInt16BE(0);
+        const ATYP = msg.slice(i, i += 1).readUInt8();
 
         let host;
-        // Parse the target host based on ATYP
-        if (ATYP === 1) { // IPv4
+        if (ATYP === 1) {
             host = msg.slice(i, i += 4).join('.');
-        } else if (ATYP === 2) { // Domain name
+        } else if (ATYP === 2) {
             host = new TextDecoder().decode(msg.slice(i + 1, i += 1 + msg.slice(i, i + 1).readUInt8()));
-        } else if (ATYP === 3) { // IPv6
+        } else if (ATYP === 3) {
             host = msg.slice(i, i += 16).reduce((s, b, idx, arr) => (idx % 2 ? s.concat(arr.slice(idx - 1, idx + 1)) : s), [])
                 .map(b => b.readUInt16BE(0).toString(16))
                 .join(':');
@@ -262,28 +258,23 @@ wss.on('connection', ws => {
             return;
         }
 
-        logcb('conn:', host, port); // Log the connection details
+        logcb('conn:', host, port);
 
-        // Send a success response to the client (VLESS handshake response)
         ws.send(new Uint8Array([VERSION, 0]));
 
-        // Create a duplex stream from the WebSocket for piping data
         const duplex = createWebSocketStream(ws);
 
-        // Connect to the target host and port
         net.connect({ host, port }, function () {
-            // Write the remaining part of the client's initial message to the target
             this.write(msg.slice(i));
-            // Pipe data between the WebSocket and the target connection
             duplex.on('error', errcb('E1:')).pipe(this).on('error', errcb('E2:')).pipe(duplex);
-        }).on('error', errcb('Conn-Err:', { host, port })); // Handle connection errors to the target
-    }).on('error', errcb('EE:')); // Handle errors on the WebSocket message
+        }).on('error', errcb('Conn-Err:', { host, port }));
+    }).on('error', errcb('EE:'));
 });
 
 // Start the HTTP server listening on the specified port
 server.listen(port, () => {
     logcb('Server listening on port:', port);
-    logcb('VLESS Proxy UUID:', uuid); // Still logged to console for server admin
+    logcb('VLESS Proxy UUID:', uuid);
     logcb('Access home page at: http://localhost:' + port);
 });
 
